@@ -1,33 +1,29 @@
-from flask import Flask, render_template, request
+import streamlit as st
 import joblib
 import numpy as np
 
-app = Flask(__name__)
+# Set page title
+st.set_page_config(page_title="Breast Cancer Prediction", page_icon="🎗️")
 
-# Load saved files
-model = joblib.load("model/titanic_survival_model.pkl")
-scaler = joblib.load("model/scaler.pkl")
-le_sex = joblib.load("model/le_sex.pkl")
-le_embarked = joblib.load("model/le_embarked.pkl")
+st.title("Breast Cancer Prediction System")
+st.write("Enter tumor features to predict whether it is Benign or Malignant.")
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    prediction = None
+# Load the trained model
+model = joblib.load("model/breast_cancer_model.pkl")
 
-    if request.method == "POST":
-        pclass = int(request.form["pclass"])
-        sex = le_sex.transform([request.form["sex"]])[0]
-        age = float(request.form["age"])
-        fare = float(request.form["fare"])
-        embarked = le_embarked.transform([request.form["embarked"]])[0]
+# Input fields for the 5 features
+radius = st.number_input("Radius mean", min_value=0.0, step=0.01)
+texture = st.number_input("Texture mean", min_value=0.0, step=0.01)
+perimeter = st.number_input("Perimeter mean", min_value=0.0, step=0.01)
+area = st.number_input("Area mean", min_value=0.0, step=0.01)
+smoothness = st.number_input("Smoothness mean", min_value=0.0, step=0.001)
 
-        features = np.array([[pclass, sex, age, fare, embarked]])
-        features_scaled = scaler.transform(features)
-
-        result = model.predict(features_scaled)[0]
-        prediction = "Survived 🎉" if result == 1 else "Did Not Survive ❌"
-
-    return render_template("index.html", prediction=prediction)
-
-if __name__ == "__main__":
-    app.run(debug=True)
+# Prediction button
+if st.button("Predict"):
+    features = np.array([[radius, texture, perimeter, area, smoothness]])
+    prediction = model.predict(features)
+    
+    if prediction[0] == 0:
+        st.success("Prediction: Benign ✅")
+    else:
+        st.error("Prediction: Malignant ❌")
